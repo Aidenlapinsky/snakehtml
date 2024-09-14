@@ -1,0 +1,164 @@
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Snake Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <style>
+        #gameCanvas {
+            display: none;
+            background-color: #4CAF50;
+            display: block;
+            margin: 0 auto;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-green-900 flex items-center justify-center h-screen">
+    <div id="loadingScreen" class="bg-blue-500 rounded-3xl p-6 w-80 shadow-lg flex flex-col items-center justify-center">
+        <div class="flex justify-between items-center mb-4 w-full">
+            <div class="text-center">
+                <img alt="Apple icon" class="mx-auto mb-2" height="50" src="https://placehold.co/50x50?text=Apple&bg=ff0000&font=roboto" width="50"/>
+                <p class="text-white text-xl" id="score">0</p>
+            </div>
+            <div class="text-center">
+                <img alt="Trophy icon" class="mx-auto mb-2" height="50" src="https://placehold.co/50x50?text=Trophy&bg=ffd700&font=roboto" width="50"/>
+                <p class="text-white text-xl" id="highscore">0</p>
+            </div>
+        </div>
+        <div class="bg-green-500 h-32 flex items-center justify-center mb-4 rounded-2xl">
+            <img alt="Snake image" height="50" src="https://placehold.co/100x50?text=Snake&bg=0000ff&font=roboto" width="100"/>
+        </div>
+        <button class="bg-blue-600 text-white text-lg py-2 px-4 rounded-lg w-full mb-2 flex items-center justify-center" onclick="startGame()">
+            <i class="fas fa-play mr-2"></i>
+            Play
+        </button>
+        <button class="bg-blue-600 text-white text-lg py-2 px-4 rounded-lg w-full mb-2 flex items-center justify-center">
+            <i class="fas fa-cog mr-2"></i>
+            Settings
+        </button>
+        <button class="bg-blue-600 text-white text-lg py-2 px-4 rounded-lg w-full flex items-center justify-center">
+            <i class="fas fa-star mr-2"></i>
+            Daily Challenge
+        </button>
+    </div>
+    <canvas id="gameCanvas" width="300" height="300"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const box = 20;
+        let snake = [];
+        snake[0] = { x: 9 * box, y: 10 * box };
+
+        let food = {
+            x: Math.floor(Math.random() * 15 + 1) * box,
+            y: Math.floor(Math.random() * 15 + 3) * box
+        };
+
+        let score = 0;
+        let highscore = 0;
+        let d;
+
+        document.addEventListener("keydown", direction);
+
+        function direction(event) {
+            if (event.keyCode == 37 && d != "RIGHT") {
+                d = "LEFT";
+            } else if (event.keyCode == 38 && d != "DOWN") {
+                d = "UP";
+            } else if (event.keyCode == 39 && d != "LEFT") {
+                d = "RIGHT";
+            } else if (event.keyCode == 40 && d != "UP") {
+                d = "DOWN";
+            }
+        }
+
+        function collision(head, array) {
+            for (let i = 0; i < array.length; i++) {
+                if (head.x == array[i].x && head.y == array[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the checkered background
+            for (let i = 0; i < canvas.width / box; i++) {
+                for (let j = 0; j < canvas.height / box; j++) {
+                    ctx.fillStyle = (i + j) % 2 === 0 ? "#A2D149" : "#AAD751";
+                    ctx.fillRect(i * box, j * box, box, box);
+                }
+            }
+
+            for (let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = (i == 0) ? "blue" : "white";
+                ctx.fillRect(snake[i].x, snake[i].y, box, box);
+
+                ctx.strokeStyle = "red";
+                ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+            }
+
+            ctx.fillStyle = "red";
+            ctx.fillRect(food.x, food.y, box, box);
+
+            let snakeX = snake[0].x;
+            let snakeY = snake[0].y;
+
+            if (d == "LEFT") snakeX -= box;
+            if (d == "UP") snakeY -= box;
+            if (d == "RIGHT") snakeX += box;
+            if (d == "DOWN") snakeY += box;
+
+            if (snakeX == food.x && snakeY == food.y) {
+                score++;
+                food = {
+                    x: Math.floor(Math.random() * 15 + 1) * box,
+                    y: Math.floor(Math.random() * 15 + 3) * box
+                };
+            } else {
+                snake.pop();
+            }
+
+            let newHead = {
+                x: snakeX,
+                y: snakeY
+            };
+
+            if (snakeX < 0 || snakeY < 0 || snakeX >= canvas.width || snakeY >= canvas.height || collision(newHead, snake)) {
+                clearInterval(game);
+                if (score > highscore) {
+                    highscore = score;
+                    document.getElementById("highscore").innerText = highscore;
+                }
+                score = 0;
+                snake = [];
+                snake[0] = { x: 9 * box, y: 10 * box };
+                d = null;
+                document.getElementById("loadingScreen").classList.remove("hidden");
+                canvas.style.display = "none";
+                return;
+            }
+
+            snake.unshift(newHead);
+
+            document.getElementById("score").innerText = score;
+        }
+
+        let game;
+
+        function startGame() {
+            document.getElementById("loadingScreen").classList.add("hidden");
+            canvas.style.display = "block";
+            clearInterval(game);
+            game = setInterval(draw, 100);
+        }
+    </script>
+</body>
+</html>
